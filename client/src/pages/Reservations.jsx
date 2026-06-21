@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
+import { playSuccessChime } from '../utils/paymentUtils';
+import CardPreview from '../components/payment/CardPreview';
+import CardForm from '../components/payment/CardForm';
+import UpiForm from '../components/payment/UpiForm';
+import ProcessingOverlay from '../components/payment/ProcessingOverlay';
 
 const Reservations = () => {
     const [currentStep, setCurrentStep] = useState(1);
@@ -27,63 +32,7 @@ const Reservations = () => {
     const timeSlots = ['18:00', '19:30', '21:00', '22:30'];
     const dietaryOptions = ['Vegan', 'Gluten-Free', 'Dairy-Free', 'Nut-Free'];
 
-    // Formatters for payment details
-    const handleCardNumberChange = (e) => {
-        const val = e.target.value.replace(/\D/g, '');
-        const formatted = val.match(/.{1,4}/g)?.join(' ') || val;
-        setCardNumber(formatted.substring(0, 19));
-    };
-
-    const handleExpiryChange = (e) => {
-        const val = e.target.value.replace(/\D/g, '');
-        if (val.length <= 2) {
-            setCardExpiry(val);
-        } else {
-            setCardExpiry(`${val.substring(0, 2)}/${val.substring(2, 4)}`);
-        }
-    };
-
-    const handleCvvChange = (e) => {
-        const val = e.target.value.replace(/\D/g, '');
-        setCardCvv(val.substring(0, 3));
-    };
-
-    const playSuccessChime = () => {
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) return;
-            const ctx = new AudioContext();
-            const now = ctx.currentTime;
-
-            // Harmonized E5 -> G#5 bell chime
-            const osc1 = ctx.createOscillator();
-            const gain1 = ctx.createGain();
-            osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(659.25, now);
-            gain1.gain.setValueAtTime(0, now);
-            gain1.gain.linearRampToValueAtTime(0.2, now + 0.05);
-            gain1.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
-            osc1.connect(gain1);
-            gain1.connect(ctx.destination);
-
-            const osc2 = ctx.createOscillator();
-            const gain2 = ctx.createGain();
-            osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(830.61, now + 0.1);
-            gain2.gain.setValueAtTime(0, now + 0.1);
-            gain2.gain.linearRampToValueAtTime(0.2, now + 0.15);
-            gain2.gain.exponentialRampToValueAtTime(0.0001, now + 1.0);
-            osc2.connect(gain2);
-            gain2.connect(ctx.destination);
-
-            osc1.start(now);
-            osc1.stop(now + 0.8);
-            osc2.start(now + 0.1);
-            osc2.stop(now + 1.0);
-        } catch (error) {
-            console.error('Failed to play payment chime:', error);
-        }
-    };
+    // Formatter functions are imported from paymentUtils.js
 
     const goToStep = (step) => {
         if (step > currentStep) {
@@ -656,7 +605,6 @@ const Reservations = () => {
                                 </div>
                             </div>
 
-                            {/* Right Column: Forms & Previews */}
                             <div className="lg:col-span-7">
                                 <div style={{ position: 'relative', minHeight: '340px' }}>
                                     {/* CARD FORM */}
@@ -675,183 +623,25 @@ const Reservations = () => {
                                             gap: '24px',
                                         }}
                                     >
-                                        {/* Card Interactive Preview */}
-                                        <div 
-                                            style={{ 
-                                                perspective: '1000px', 
-                                                width: '100%', 
-                                                maxWidth: '340px', 
-                                                margin: '0 auto 12px' 
-                                            }}
-                                        >
-                                            <div 
-                                                style={{
-                                                    width: '100%',
-                                                    height: '190px',
-                                                    position: 'relative',
-                                                    transformStyle: 'preserve-3d',
-                                                    transition: 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                                                    transform: isCardFlipped ? 'rotateY(180deg)' : 'none',
-                                                }}
-                                            >
-                                                {/* Card Front */}
-                                                <div 
-                                                    style={{
-                                                        position: 'absolute',
-                                                        inset: 0,
-                                                        backfaceVisibility: 'hidden',
-                                                        background: 'linear-gradient(135deg, #1f1d18 0%, #11100d 100%)',
-                                                        border: '1px solid rgba(212, 175, 55, 0.25)',
-                                                        borderRadius: '16px',
-                                                        padding: '24px',
-                                                        color: '#f0ece2',
-                                                        display: 'flex',
-                                                        flexDirection: 'column',
-                                                        justifyContent: 'space-between',
-                                                        boxShadow: '0 15px 35px rgba(0,0,0,0.5), 0 0 20px rgba(212, 175, 55, 0.05)',
-                                                    }}
-                                                >
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="material-symbols-outlined text-[#d4af37] text-3xl font-light">credit_card</span>
-                                                        <span style={{ fontSize: '10px', letterSpacing: '0.2em', color: '#d4af37', fontWeight: 600 }}>SWADHA</span>
-                                                    </div>
-                                                    <div style={{ fontSize: '18px', letterSpacing: '0.15em', fontFamily: 'monospace', margin: '14px 0 0' }}>
-                                                        {cardNumber || '•••• •••• •••• ••••'}
-                                                    </div>
-                                                    <div className="flex justify-between items-end">
-                                                        <div>
-                                                            <div style={{ fontSize: '7px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em' }}>Cardholder</div>
-                                                            <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 500 }}>
-                                                                {cardName || 'YOUR NAME'}
-                                                            </div>
-                                                        </div>
-                                                        <div style={{ textAlign: 'right' }}>
-                                                            <div style={{ fontSize: '7px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em' }}>Expires</div>
-                                                            <div style={{ fontSize: '11px', letterSpacing: '0.1em', fontWeight: 500 }}>
-                                                                {cardExpiry || 'MM/YY'}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Card Back */}
-                                                <div 
-                                                    style={{
-                                                        position: 'absolute',
-                                                        inset: 0,
-                                                        backfaceVisibility: 'hidden',
-                                                        transform: 'rotateY(180deg)',
-                                                        background: 'linear-gradient(135deg, #11100d 0%, #1f1d18 100%)',
-                                                        border: '1px solid rgba(212, 175, 55, 0.25)',
-                                                        borderRadius: '16px',
-                                                        color: '#f0ece2',
-                                                        boxShadow: '0 15px 35px rgba(0,0,0,0.5), 0 0 20px rgba(212, 175, 55, 0.05)',
-                                                    }}
-                                                >
-                                                    <div style={{ background: '#000', height: '40px', marginTop: '20px', width: '100%' }} />
-                                                    <div style={{ padding: '20px 24px 0' }}>
-                                                        <div style={{ fontSize: '7px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textAlign: 'right' }}>CVV</div>
-                                                        <div 
-                                                            style={{ 
-                                                                background: 'rgba(255,255,255,0.06)', 
-                                                                padding: '6px 12px', 
-                                                                borderRadius: '4px',
-                                                                fontFamily: 'monospace',
-                                                                fontSize: '14px',
-                                                                letterSpacing: '0.1em',
-                                                                textAlign: 'right',
-                                                                color: '#d4af37',
-                                                                fontWeight: 600,
-                                                                border: '1px dashed rgba(212, 175, 55, 0.3)',
-                                                            }}
-                                                        >
-                                                            {cardCvv || '•••'}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Card Input Form */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            {/* Card Number */}
-                                            <div className="space-y-1 relative font-body">
-                                                <input
-                                                    type="text"
-                                                    value={cardNumber}
-                                                    onChange={handleCardNumberChange}
-                                                    required={paymentMethod === 'card' && currentStep === 5}
-                                                    placeholder=" "
-                                                    id="card_number_input"
-                                                    className="peer w-full bg-transparent border-0 border-b border-outline-variant py-4 px-0 font-body text-body-lg text-on-surface focus:ring-0 focus:outline-none focus:border-primary transition-all"
-                                                />
-                                                <label 
-                                                    htmlFor="card_number_input"
-                                                    className="absolute left-0 top-4 font-label text-label-md text-on-surface-variant uppercase tracking-wider transition-all pointer-events-none origin-[0_0] peer-focus:-translate-y-6 peer-focus:scale-75 peer-focus:text-primary peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:scale-75"
-                                                >
-                                                    Card Number
-                                                </label>
-                                            </div>
-
-                                            {/* Cardholder Name */}
-                                            <div className="space-y-1 relative font-body">
-                                                <input
-                                                    type="text"
-                                                    value={cardName}
-                                                    onChange={(e) => setCardName(e.target.value.toUpperCase())}
-                                                    required={paymentMethod === 'card' && currentStep === 5}
-                                                    placeholder=" "
-                                                    id="cardholder_name_input"
-                                                    className="peer w-full bg-transparent border-0 border-b border-outline-variant py-4 px-0 font-body text-body-lg text-on-surface focus:ring-0 focus:outline-none focus:border-primary transition-all"
-                                                />
-                                                <label 
-                                                    htmlFor="cardholder_name_input"
-                                                    className="absolute left-0 top-4 font-label text-label-md text-on-surface-variant uppercase tracking-wider transition-all pointer-events-none origin-[0_0] peer-focus:-translate-y-6 peer-focus:scale-75 peer-focus:text-primary peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:scale-75"
-                                                >
-                                                    Cardholder Name
-                                                </label>
-                                            </div>
-
-                                            {/* Expiry Date */}
-                                            <div className="space-y-1 relative font-body">
-                                                <input
-                                                    type="text"
-                                                    value={cardExpiry}
-                                                    onChange={handleExpiryChange}
-                                                    required={paymentMethod === 'card' && currentStep === 5}
-                                                    placeholder=" "
-                                                    id="card_expiry_input"
-                                                    className="peer w-full bg-transparent border-0 border-b border-outline-variant py-4 px-0 font-body text-body-lg text-on-surface focus:ring-0 focus:outline-none focus:border-primary transition-all"
-                                                />
-                                                <label 
-                                                    htmlFor="card_expiry_input"
-                                                    className="absolute left-0 top-4 font-label text-label-md text-on-surface-variant uppercase tracking-wider transition-all pointer-events-none origin-[0_0] peer-focus:-translate-y-6 peer-focus:scale-75 peer-focus:text-primary peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:scale-75"
-                                                >
-                                                    Expiry Date (MM/YY)
-                                                </label>
-                                            </div>
-
-                                            {/* CVV */}
-                                            <div className="space-y-1 relative font-body">
-                                                <input
-                                                    type="password"
-                                                    value={cardCvv}
-                                                    onChange={handleCvvChange}
-                                                    onFocus={() => setIsCardFlipped(true)}
-                                                    onBlur={() => setIsCardFlipped(false)}
-                                                    required={paymentMethod === 'card' && currentStep === 5}
-                                                    placeholder=" "
-                                                    id="card_cvv_input"
-                                                    className="peer w-full bg-transparent border-0 border-b border-outline-variant py-4 px-0 font-body text-body-lg text-on-surface focus:ring-0 focus:outline-none focus:border-primary transition-all"
-                                                />
-                                                <label 
-                                                    htmlFor="card_cvv_input"
-                                                    className="absolute left-0 top-4 font-label text-label-md text-on-surface-variant uppercase tracking-wider transition-all pointer-events-none origin-[0_0] peer-focus:-translate-y-6 peer-focus:scale-75 peer-focus:text-primary peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:scale-75"
-                                                >
-                                                    CVV
-                                                </label>
-                                            </div>
-                                        </div>
+                                        <CardPreview
+                                            cardNumber={cardNumber}
+                                            cardName={cardName}
+                                            cardExpiry={cardExpiry}
+                                            cardCvv={cardCvv}
+                                            isCardFlipped={isCardFlipped}
+                                        />
+                                        <CardForm
+                                            cardNumber={cardNumber}
+                                            setCardNumber={setCardNumber}
+                                            cardName={cardName}
+                                            setCardName={setCardName}
+                                            cardExpiry={cardExpiry}
+                                            setCardExpiry={setCardExpiry}
+                                            cardCvv={cardCvv}
+                                            setCardCvv={setCardCvv}
+                                            setIsCardFlipped={setIsCardFlipped}
+                                            isRequired={paymentMethod === 'card' && currentStep === 5}
+                                        />
                                     </div>
 
                                     {/* UPI FORM */}
@@ -871,67 +661,11 @@ const Reservations = () => {
                                             alignItems: 'center',
                                         }}
                                     >
-                                        {/* QR Code Container */}
-                                        <div 
-                                            style={{
-                                                padding: '16px',
-                                                borderRadius: '16px',
-                                                background: '#161512',
-                                                border: '1px solid rgba(212, 175, 55, 0.15)',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                alignItems: 'center',
-                                                gap: '12px',
-                                                boxShadow: '0 15px 35px rgba(0,0,0,0.5)',
-                                            }}
-                                        >
-                                            {/* Custom Premium SVG QR Code */}
-                                            <svg width="150" height="150" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <rect width="100" height="100" rx="10" fill="#1b1a16"/>
-                                                <rect x="8" y="8" width="24" height="24" rx="3" stroke="#d4af37" strokeWidth="2.5" fill="none"/>
-                                                <rect x="14" y="14" width="12" height="12" rx="1.5" fill="#d4af37"/>
-                                                <rect x="68" y="8" width="24" height="24" rx="3" stroke="#d4af37" strokeWidth="2.5" fill="none"/>
-                                                <rect x="74" y="14" width="12" height="12" rx="1.5" fill="#d4af37"/>
-                                                <rect x="8" y="68" width="24" height="24" rx="3" stroke="#d4af37" strokeWidth="2.5" fill="none"/>
-                                                <rect x="14" y="74" width="12" height="12" rx="1.5" fill="#d4af37"/>
-                                                <rect x="42" y="12" width="6" height="6" rx="1" fill="#d4af37" opacity="0.8"/>
-                                                <rect x="54" y="12" width="6" height="6" rx="1" fill="#d4af37" opacity="0.8"/>
-                                                <rect x="42" y="24" width="6" height="6" rx="1" fill="#d4af37" opacity="0.8"/>
-                                                <rect x="54" y="24" width="6" height="6" rx="1" fill="#d4af37" opacity="0.8"/>
-                                                <rect x="12" y="42" width="6" height="6" rx="1" fill="#d4af37" opacity="0.8"/>
-                                                <rect x="24" y="42" width="6" height="6" rx="1" fill="#d4af37" opacity="0.8"/>
-                                                <rect x="12" y="54" width="6" height="6" rx="1" fill="#d4af37" opacity="0.8"/>
-                                                <rect x="24" y="54" width="6" height="6" rx="1" fill="#d4af37" opacity="0.8"/>
-                                                <rect x="42" y="42" width="16" height="16" rx="2" fill="#d4af37" opacity="0.95"/>
-                                                <rect x="68" y="42" width="10" height="6" rx="1" fill="#d4af37" opacity="0.8"/>
-                                                <rect x="82" y="42" width="6" height="10" rx="1" fill="#d4af37" opacity="0.8"/>
-                                                <rect x="42" y="68" width="6" height="10" rx="1" fill="#d4af37" opacity="0.8"/>
-                                                <rect x="54" y="68" width="10" height="6" rx="1" fill="#d4af37" opacity="0.8"/>
-                                                <rect x="68" y="68" width="24" height="24" rx="3" fill="#d4af37" opacity="0.9"/>
-                                                <rect x="74" y="74" width="12" height="12" rx="1.5" fill="#1b1a16"/>
-                                            </svg>
-                                            <span style={{ fontSize: '8px', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>
-                                                Scan to Pay with Any UPI App
-                                            </span>
-                                        </div>
-
-                                        <div style={{ width: '100%', maxWidth: '340px' }} className="space-y-1 relative font-body">
-                                            <input
-                                                type="text"
-                                                value={upiId}
-                                                onChange={(e) => setUpiId(e.target.value.toLowerCase())}
-                                                required={paymentMethod === 'upi' && currentStep === 5}
-                                                placeholder=" "
-                                                id="upi_id_input"
-                                                className="peer w-full bg-transparent border-0 border-b border-outline-variant py-4 px-0 font-body text-body-lg text-on-surface focus:ring-0 focus:outline-none focus:border-primary transition-all text-center"
-                                            />
-                                            <label 
-                                                htmlFor="upi_id_input"
-                                                className="absolute left-1/2 -translate-x-1/2 top-4 font-label text-label-md text-on-surface-variant uppercase tracking-wider transition-all pointer-events-none origin-[center_center] peer-focus:-translate-y-6 peer-focus:-translate-x-1/2 peer-focus:scale-75 peer-focus:text-primary peer-[:not(:placeholder-shown)]:-translate-y-6 peer-[:not(:placeholder-shown)]:-translate-x-1/2 peer-[:not(:placeholder-shown)]:scale-75"
-                                            >
-                                                UPI ID (e.g. name@upi)
-                                            </label>
-                                        </div>
+                                        <UpiForm
+                                            upiId={upiId}
+                                            setUpiId={setUpiId}
+                                            isRequired={paymentMethod === 'upi' && currentStep === 5}
+                                        />
                                     </div>
                                 </div>
 
@@ -1058,52 +792,7 @@ const Reservations = () => {
             </div>
 
             {/* Full-Screen Processing Overlay */}
-            {isProcessing && (
-                <div 
-                    style={{
-                        position: 'fixed',
-                        inset: 0,
-                        background: 'rgba(10, 10, 10, 0.95)',
-                        backdropFilter: 'blur(10px)',
-                        zIndex: 9999,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '24px',
-                        transition: 'opacity 0.5s ease',
-                    }}
-                >
-                    <svg className="progress-ring" width="100" height="100">
-                        <circle
-                            className="progress-ring__circle"
-                            stroke="#d4af37"
-                            strokeWidth="3"
-                            fill="transparent"
-                            r="40"
-                            cx="50"
-                            cy="50"
-                        />
-                    </svg>
-                    <span 
-                        style={{
-                            fontFamily: "'Playfair Display', serif",
-                            fontSize: '18px',
-                            letterSpacing: '0.1em',
-                            color: '#fff',
-                            animation: 'pulse 1.5s infinite ease-in-out',
-                        }}
-                    >
-                        {processingText}
-                    </span>
-                    <style>{`
-                        @keyframes pulse {
-                            0%, 100% { opacity: 0.6; }
-                            50% { opacity: 1; }
-                        }
-                    `}</style>
-                </div>
-            )}
+            <ProcessingOverlay isProcessing={isProcessing} processingText={processingText} />
 
             {/* Ambient Side Decorations (Desktop) */}
             <div className="fixed left-0 top-1/2 -translate-y-1/2 h-[530px] w-64 opacity-20 pointer-events-none hidden lg:block overflow-hidden">
