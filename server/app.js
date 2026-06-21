@@ -1,0 +1,15 @@
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const dotenv = require('dotenv');
+const { errorHandler } = require('./middleware/errorMiddleware');
+dotenv.config();
+const app = express();
+app.use(helmet()); app.use(cors()); app.use(express.json());
+app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/menu', require('./routes/menuRoutes'));
+app.use('/api/categories', require('./routes/categoryRoutes'));
+app.use('/api/orders', require('./routes/orderRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
+app.use(errorHandler);
+module.exports = app;
